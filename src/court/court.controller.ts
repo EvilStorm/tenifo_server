@@ -28,21 +28,24 @@ export class CourtController {
   search(
     @Query('start') start: string,
     @Query('end') end: string,
-    @Query('day') day: string,
+    @Query('dayStart') dayStart: string,
+    @Query('dayEnd') dayEnd: string,
     @Query('cort') cort: string,
+    @Query('matchType') matchType: string,
     @Query('page') page: string,
     @Query('limit') limit: string,
   ) {
     return this.courtService.searchAdvanced({
       start: start ? +start : undefined,
       end: end ? +end : undefined,
-      day,
+      dayStart,
+      dayEnd,
       cort,
       page: page ? +page : 1,
       limit: limit ? +limit : 10,
+      matchType: matchType ? (+matchType as 1 | 2) : 1,
     });
   }
-
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.courtService.findOne(+id);

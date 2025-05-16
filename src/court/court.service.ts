@@ -44,10 +44,12 @@ export class CourtService {
   async searchAdvanced(options: {
     start?: number;
     end?: number;
-    day?: string;
+    dayStart?: string;
+    dayEnd?: string;
     cort?: string;
     page?: number;
     limit?: number;
+    matchType?: 1 | 2;
   }): Promise<{ data: Court[]; total: number }> {
     const queryBuilder = this.dataSource
       .getRepository(Court)
@@ -61,8 +63,15 @@ export class CourtService {
       });
     }
 
-    if (options.day) {
-      queryBuilder.andWhere('ti.day = :day', { day: options.day });
+    if (options.dayStart && options.dayEnd) {
+      queryBuilder.andWhere('ti.day BETWEEN :dayStart AND :dayEnd', {
+        dayStart: options.dayStart,
+        dayEnd: options.dayEnd,
+      });
+    } else if (options.dayStart) {
+      queryBuilder.andWhere('ti.day = :dayStart', {
+        dayStart: options.dayStart,
+      });
     }
 
     if (options.start !== undefined && options.end !== undefined) {
@@ -73,10 +82,23 @@ export class CourtService {
         (_, i) => i + start,
       );
 
-      for (const time of requiredTimes) {
-        queryBuilder.andWhere(`ti.times @> :time${time}`, {
-          [`time${time}`]: JSON.stringify([time]),
-        });
+      if (options.matchType === 1) {
+        for (const time of requiredTimes) {
+          queryBuilder.andWhere(`ti.times @> :time${time}`, {
+            [`time${time}`]: JSON.stringify([time]),
+          });
+        }
+      } else {
+        const orConditions = requiredTimes
+          .map((time, i) => `ti.times @> :or_time${i}`)
+          .join(' OR ');
+        const params = Object.fromEntries(
+          requiredTimes.map((time, i) => [
+            `or_time${i}`,
+            JSON.stringify([time]),
+          ]),
+        );
+        queryBuilder.andWhere(`(${orConditions})`, params);
       }
     }
 
